@@ -1,0 +1,14 @@
+/* Hide menu toggle on desktop */
+@media (min-width: 769px) {
+  .menuToggle {
+    display: none !important;
+  }
+}
+
+/* Hide desktop links on mobile */
+@media (max-width: 768px) {
+  .desktopNav,
+  .desktopAuth {
+    display: none !important;
+  }
+}

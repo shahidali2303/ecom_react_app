@@ -1,0 +1,59 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+.skeleton {
+  background-color: #eee;
+  background-image: linear-gradient(90deg, #eee 0px, #f5f5f5 40px, #eee 80px);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+/* Hide menu toggle on desktop */
+@media (min-width: 769px) {
+  .menuToggle {
+    display: none !important;
+  }
+}
+
+/* Hide desktop links on mobile */
+@media (max-width: 768px) {
+  .desktopNav,
+  .desktopAuth {
+    display: none !important;
+  }
+}
+/* Add to src/index.css */
+.product-hover-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  border-color: #007bff !important;
+}
+
+.product-hover-card:hover .zoom-image {
+  transform: scale(1.1);
+}
+
+.product-hover-card button:hover {
+  background-color: #333 !important;
+}
+/* This is the magic part that brings the button into view */
+.modern-card:hover .quick-actions-overlay {
+  transform: translateY(0) !important;
+}
+
+/* Ensure the button itself is visible */
+.quick-add-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
