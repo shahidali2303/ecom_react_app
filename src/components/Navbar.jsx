@@ -172,20 +172,19 @@ const Navbar = () => {
       </div>
 
       {/* MOBILE OVERLAY */}
-      {/* MOBILE OVERLAY */}
       {isMenuOpen && isMobile && (
         <div style={styles.mobileMenu}>
-          {/* Mobile Search Wrapper */}
-          <div style={{ position: "relative" }}>
+          {/* 1. Mobile Search Section */}
+          <div style={{ position: "relative", marginBottom: "15px" }}>
             <input
               type="text"
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ ...styles.searchInput, marginBottom: "0px" }}
+              style={styles.searchInput}
             />
 
-            {/* MOBILE SEARCH RESULTS */}
+            {/* MOBILE SEARCH RESULTS DROPDOWN */}
             {(searchResults.length > 0 || isSearching) && (
               <div style={styles.mobileDropdown}>
                 {isSearching ? (
@@ -196,9 +195,10 @@ const Navbar = () => {
                       key={product.id}
                       onClick={() => {
                         handleSelectProduct(product.id);
-                        setIsMenuOpen(false); // Close menu after selection
+                        setIsMenuOpen(false);
                       }}
                       style={styles.resultItem}
+                      className="search-hover"
                     >
                       <img
                         src={product.images[0]?.replace(/[\[\]"]/g, "")}
@@ -216,7 +216,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Rest of mobile links */}
+          {/* 2. Navigation Links */}
           <Link
             to="/"
             style={styles.mobileItem}
@@ -231,8 +231,38 @@ const Navbar = () => {
           >
             Wishlist ({wishlist.length})
           </Link>
+
           <hr style={styles.divider} />
-          {/* ... rest of auth logic */}
+
+          {/* 3. AUTH SECTION (The Missing Part) */}
+          <div style={styles.mobileAuthContainer}>
+            {isAuthenticated ? (
+              <>
+                <div style={styles.mobileUserCard}>
+                  <div style={styles.avatar}>
+                    {user?.name?.charAt(0) || "U"}
+                  </div>
+                  <div style={styles.mobileTextGroup}>
+                    <span style={styles.mobileWelcome}>Welcome back,</span>
+                    <span style={styles.mobileUserName}>
+                      {user?.name || "User"}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={handleLogout} style={styles.mobileLogoutBtn}>
+                  Log Out of Account
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                style={styles.mobileLoginBtn}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sign In to LuxeStore
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </nav>
@@ -434,6 +464,75 @@ const styles = {
     marginTop: "5px",
     maxHeight: "250px", // Limit height so it doesn't take over the whole screen
     overflowY: "auto",
+  },
+  mobileAuthContainer: {
+    marginTop: "10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+  mobileUserCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    padding: "15px",
+    background: "#f8f9fa",
+    borderRadius: "12px",
+    border: "1px solid #eee",
+  },
+  mobileTextGroup: {
+    display: "flex",
+    flexDirection: "column",
+    textAlign: "left",
+  },
+  mobileWelcome: {
+    fontSize: "0.75rem",
+    color: "#888",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  mobileUserName: {
+    fontSize: "1rem",
+    fontWeight: "700",
+    color: "#000",
+  },
+  mobileLogoutBtn: {
+    width: "100%",
+    padding: "16px",
+    backgroundColor: "#fff",
+    color: "#ff4d4d",
+    border: "1px solid #ff4d4d",
+    borderRadius: "12px",
+    fontWeight: "700",
+    fontSize: "1rem",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  mobileLoginBtn: {
+    width: "100%",
+    padding: "16px",
+    backgroundColor: "#000",
+    color: "#fff",
+    border: "none",
+    borderRadius: "12px",
+    fontWeight: "700",
+    fontSize: "1rem",
+    textDecoration: "none",
+    textAlign: "center",
+    display: "block",
+  },
+  // Ensure avatar looks consistent
+  avatar: {
+    width: "40px",
+    height: "40px",
+    background: "#000",
+    color: "#fff",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1rem",
+    fontWeight: "bold",
   },
 };
 
