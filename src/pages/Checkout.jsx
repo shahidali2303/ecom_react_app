@@ -1,10 +1,18 @@
-// src/pages/Checkout.jsx
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../store/useStore";
 
 const Checkout = () => {
   const { cart, clearCart } = useStore();
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle Responsive Resizing
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -20,6 +28,8 @@ const Checkout = () => {
     navigate("/");
   };
 
+  const sanitize = (text) => text?.replace(/<[^>]*>?/gm, "") || "";
+
   if (cart.length === 0) {
     return (
       <div style={styles.empty}>
@@ -33,9 +43,21 @@ const Checkout = () => {
 
   return (
     <div style={styles.page}>
-      <div style={styles.container}>
+      <div
+        style={{
+          ...styles.container,
+          flexDirection: isMobile ? "column-reverse" : "row", // Summary shows first on mobile for some checkouts, or reverse to keep form first. Let's keep form first:
+          flexDirection: isMobile ? "column" : "row",
+          padding: isMobile ? "20px" : "60px 20px",
+        }}
+      >
         {/* LEFT SIDE: Forms */}
-        <div style={styles.leftColumn}>
+        <div
+          style={{
+            ...styles.leftColumn,
+            minWidth: isMobile ? "100%" : "350px",
+          }}
+        >
           <h2 style={styles.sectionTitle}>Contact Information</h2>
           <form id="checkout-form" onSubmit={handlePlaceOrder}>
             <input
@@ -46,20 +68,27 @@ const Checkout = () => {
             />
 
             <h2 style={styles.sectionTitle}>Shipping Address</h2>
-            <div style={styles.row}>
+            <div
+              style={{
+                ...styles.row,
+                flexDirection: isMobile ? "column" : "row",
+                gap: isMobile ? "0" : "12px",
+              }}
+            >
               <input
                 type="text"
                 placeholder="First Name"
                 required
-                style={styles.inputHalf}
+                style={isMobile ? styles.inputFull : styles.inputHalf}
               />
               <input
                 type="text"
                 placeholder="Last Name"
                 required
-                style={styles.inputHalf}
+                style={isMobile ? styles.inputFull : styles.inputHalf}
               />
             </div>
+
             <input
               type="text"
               placeholder="Address"
@@ -71,24 +100,32 @@ const Checkout = () => {
               placeholder="Apartment, suite, etc. (optional)"
               style={styles.inputFull}
             />
-            <div style={styles.row}>
+
+            <div
+              style={{
+                ...styles.row,
+                flexDirection: isMobile ? "column" : "row",
+                gap: isMobile ? "0" : "12px",
+              }}
+            >
               <input
                 type="text"
                 placeholder="City"
                 required
-                style={styles.inputThird}
+                style={isMobile ? styles.inputFull : styles.inputThird}
               />
+
               <input
                 type="text"
                 placeholder="State"
                 required
-                style={styles.inputThird}
+                style={styles.inputHalf}
               />
               <input
                 type="text"
                 placeholder="ZIP code"
                 required
-                style={styles.inputThird}
+                style={styles.inputHalf}
               />
             </div>
 
@@ -104,30 +141,47 @@ const Checkout = () => {
                   placeholder="Card Number"
                   style={styles.inputFull}
                 />
-                <div style={styles.row}>
+                <div
+                  style={{
+                    ...styles.row,
+                    flexDirection: isMobile ? "column" : "row",
+                    gap: isMobile ? "0" : "12px",
+                  }}
+                >
                   <input
                     type="text"
                     placeholder="Expiration (MM/YY)"
-                    style={styles.inputHalf}
+                    style={isMobile ? styles.inputFull : styles.inputHalf}
                   />
                   <input
                     type="text"
                     placeholder="CVV"
-                    style={styles.inputHalf}
+                    style={isMobile ? styles.inputFull : styles.inputHalf}
                   />
                 </div>
               </div>
             </div>
 
             <button type="submit" style={styles.submitBtn}>
-              Pay Now — ${total.toFixed(2)}
+              Complete Purchase — ${total.toFixed(2)}
             </button>
           </form>
         </div>
 
         {/* RIGHT SIDE: Summary Card */}
-        <div style={styles.rightColumn}>
-          <div style={styles.summaryCard}>
+        <div
+          style={{
+            ...styles.rightColumn,
+            minWidth: isMobile ? "100%" : "350px",
+            marginBottom: isMobile ? "40px" : "0",
+          }}
+        >
+          <div
+            style={{
+              ...styles.summaryCard,
+              position: isMobile ? "static" : "sticky",
+            }}
+          >
             <h3 style={{ marginBottom: "20px" }}>Order Summary</h3>
             <div style={styles.itemsList}>
               {cart.map((item) => (
@@ -140,7 +194,7 @@ const Checkout = () => {
                     />
                     <span style={styles.qtyBadge}>{item.quantity}</span>
                   </div>
-                  <span style={styles.itemTitle}>{item.title}</span>
+                  <span style={styles.itemTitle}>{sanitize(item.title)}</span>
                   <span style={styles.itemPrice}>
                     ${(item.price * item.quantity).toFixed(2)}
                   </span>
@@ -178,128 +232,138 @@ const styles = {
     display: "flex",
     maxWidth: "1100px",
     margin: "0 auto",
-    padding: "60px 20px",
     gap: "60px",
-    flexWrap: "wrap",
   },
-  leftColumn: { flex: 1.2, minWidth: "350px" },
-  rightColumn: { flex: 0.8, minWidth: "350px" },
+  leftColumn: { flex: 1.2 },
+  rightColumn: { flex: 0.8 },
   sectionTitle: {
-    fontSize: "1.2rem",
+    fontSize: "1.1rem",
     fontWeight: "600",
     margin: "30px 0 15px 0",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
   },
   inputFull: {
     width: "100%",
-    padding: "12px",
+    padding: "14px",
     marginBottom: "12px",
-    border: "1px solid #dcdcdc",
-    borderRadius: "5px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
     fontSize: "1rem",
+    boxSizing: "border-box",
   },
-  row: { display: "flex", gap: "12px", marginBottom: "12px" },
+  row: { display: "flex", marginBottom: "0" },
   inputHalf: {
     flex: 1,
-    padding: "12px",
-    border: "1px solid #dcdcdc",
-    borderRadius: "5px",
+    padding: "14px",
+    marginBottom: "12px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    fontSize: "1rem",
+    boxSizing: "border-box",
   },
   inputThird: {
     flex: 1,
-    padding: "12px",
-    border: "1px solid #dcdcdc",
-    borderRadius: "5px",
+    padding: "14px",
+    marginBottom: "12px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
+    fontSize: "1rem",
+    boxSizing: "border-box", // CRITICAL: ensures padding doesn't add to width
+    minWidth: "0", // Prevents inputs from pushing past their flex container
   },
   paymentBox: {
-    border: "1px solid #dcdcdc",
-    borderRadius: "5px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "8px",
     overflow: "hidden",
     marginTop: "10px",
   },
   paymentHeader: {
-    background: "#f8f8f8",
+    background: "#fbfbfb",
     padding: "15px",
     display: "flex",
     justifyContent: "space-between",
-    borderBottom: "1px solid #dcdcdc",
+    borderBottom: "1px solid #e0e0e0",
+    fontWeight: "600",
   },
-  paymentBody: { padding: "20px" },
+  paymentBody: { padding: "20px 20px 8px 20px" },
   submitBtn: {
     width: "100%",
-    padding: "18px",
+    padding: "20px",
     backgroundColor: "#000",
     color: "#fff",
     border: "none",
-    borderRadius: "5px",
+    borderRadius: "8px",
     fontSize: "1.1rem",
-    fontWeight: "600",
+    fontWeight: "700",
     cursor: "pointer",
     marginTop: "30px",
+    transition: "background 0.3s",
   },
-
   summaryCard: {
-    background: "#f9f9f9",
+    background: "#f6f6f6",
     padding: "30px",
-    borderRadius: "12px",
-    position: "sticky",
-    top: "20px",
-    border: "1px solid #eee",
+    borderRadius: "16px",
+    top: "100px",
   },
   summaryItem: {
     display: "flex",
     alignItems: "center",
     gap: "15px",
-    marginBottom: "15px",
+    marginBottom: "20px",
   },
   imgWrapper: { position: "relative" },
   summaryImg: {
     width: "64px",
     height: "64px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
+    borderRadius: "12px",
+    border: "1px solid #eee",
     objectFit: "cover",
     background: "#fff",
   },
   qtyBadge: {
     position: "absolute",
-    top: "-10px",
-    right: "-10px",
-    background: "#666",
+    top: "-8px",
+    right: "-8px",
+    background: "rgba(0,0,0,0.7)",
     color: "#fff",
     borderRadius: "50%",
-    width: "20px",
-    height: "20px",
-    fontSize: "0.7rem",
+    width: "22px",
+    height: "22px",
+    fontSize: "0.75rem",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    fontWeight: "600",
   },
-  itemTitle: { flex: 1, fontSize: "0.9rem", color: "#444" },
-  itemPrice: { fontWeight: "500" },
+  itemTitle: { flex: 1, fontSize: "0.9rem", color: "#111", fontWeight: "500" },
+  itemPrice: { fontWeight: "600" },
   calcRow: {
     display: "flex",
     justifyContent: "space-between",
-    color: "#666",
-    margin: "10px 0",
+    color: "#555",
+    margin: "12px 0",
+    fontSize: "0.95rem",
   },
   totalRow: {
     display: "flex",
     justifyContent: "space-between",
     marginTop: "20px",
     paddingTop: "20px",
-    borderTop: "1px solid #ddd",
-    fontWeight: "600",
+    borderTop: "2px solid #e0e0e0",
+    fontWeight: "700",
   },
-  totalAmount: { fontSize: "1.4rem" },
+  totalAmount: { fontSize: "1.5rem" },
   empty: { textAlign: "center", padding: "100px" },
   backBtn: {
-    padding: "10px 20px",
+    padding: "12px 25px",
     background: "#000",
     color: "#fff",
     border: "none",
-    borderRadius: "5px",
+    borderRadius: "8px",
     marginTop: "20px",
     cursor: "pointer",
+    fontWeight: "600",
   },
 };
 
