@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import useStore from "../store/useStore";
@@ -30,18 +30,23 @@ const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, toggleWishlist, wishlist, cart } = useStore();
-  const sanitize = (text) => {
-    if (!text) return "";
-    // Removes all HTML tags
-    return text.replace(/<[^>]*>?/gm, "");
-  };
+
+  // Responsive State
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle Resize
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Reset scroll position on ID change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // 1. Fetch Main Product - Using Number(id) to ensure correct type
+  // 1. Fetch Main Product
   const {
     data: product,
     isLoading,
@@ -50,7 +55,7 @@ const ProductDetails = () => {
     queryKey: ["product", id],
     queryFn: () => fetchSingleProduct(id),
     enabled: !!id,
-    retry: 1, // Don't spam the API if product doesn't exist
+    retry: 1,
   });
 
   // 2. Fetch Related Products
@@ -62,15 +67,10 @@ const ProductDetails = () => {
 
   if (isLoading) return <SkeletonProductDetails />;
 
-  // ERROR STATE: Show a clear "Back to Home" button
   if (isError || !product) {
     return (
       <div style={styles.errorContainer}>
         <h2>Oops! Product not found.</h2>
-        <p>
-          The item you are looking for might have been removed or the ID is
-          invalid.
-        </p>
         <button onClick={() => navigate("/")} style={styles.backBtn}>
           Back to Shopping
         </button>
@@ -83,7 +83,6 @@ const ProductDetails = () => {
   const cartItem = cart.find((item) => item.id === product.id);
   const currentQty = cartItem ? cartItem.quantity : 0;
 
-  // Filter out the current product from recommendations
   const filteredRelated = relatedItems?.filter(
     (item) => item.id !== product.id,
   );
@@ -93,23 +92,44 @@ const ProductDetails = () => {
     navigate("/checkout");
   };
 
+  const sanitize = (text) => text?.replace(/<[^>]*>?/gm, "") || "";
+
   return (
-    <div className="fade-in" style={styles.page}>
-      {/* Replace your Breadcrumb <nav> content with this */}
-      <nav style={styles.breadcrumb}>
+    <div
+      className="fade-in"
+      style={{
+        ...styles.page,
+        padding: isMobile ? "20px" : "40px",
+      }}
+    >
+      {/* Breadcrumbs */}
+      <nav
+        style={{
+          ...styles.breadcrumb,
+          fontSize: isMobile ? "0.8rem" : "0.9rem",
+        }}
+      >
         <Link to="/" style={{ textDecoration: "none", color: "#888" }}>
           Home
         </Link>{" "}
-        /
-        <span>
-          {product.category?.name?.replace(/<[^>]*>?/gm, "") || "Category"}
-        </span>{" "}
-        /{product.title?.replace(/<[^>]*>?/gm, "")}
+        /<span>{sanitize(product.category?.name) || "Category"}</span> /{" "}
+        {sanitize(product.title)}
       </nav>
 
-      <div style={styles.container}>
+      <div
+        style={{
+          ...styles.container,
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? "30px" : "60px",
+        }}
+      >
         {/* Image Section */}
-        <div style={styles.imageSection}>
+        <div
+          style={{
+            ...styles.imageSection,
+            minWidth: isMobile ? "100%" : "350px",
+          }}
+        >
           <div style={styles.badge}>New Arrival</div>
           <img
             src={cleanImageUrl(product.images?.[0])}
@@ -120,11 +140,20 @@ const ProductDetails = () => {
         </div>
 
         {/* Info Section */}
-        <div style={styles.infoSection}>
-          <p style={styles.categoryTag}>{product.category?.name}</p>
-          {/* Inside your infoSection */}
-          <h1 style={styles.title}>
-            {product.title?.replace(/<[^>]*>?/gm, "")}
+        <div
+          style={{
+            ...styles.infoSection,
+            minWidth: isMobile ? "100%" : "350px",
+          }}
+        >
+          <p style={styles.categoryTag}>{sanitize(product.category?.name)}</p>
+          <h1
+            style={{
+              ...styles.title,
+              fontSize: isMobile ? "1.8rem" : "2.4rem",
+            }}
+          >
+            {sanitize(product.title)}
           </h1>
 
           <div style={styles.priceRow}>
@@ -132,7 +161,7 @@ const ProductDetails = () => {
             <span style={styles.taxNote}>Free Shipping Included</span>
           </div>
 
-          <p style={styles.description}>{product.description}</p>
+          <p style={styles.description}>{sanitize(product.description)}</p>
 
           <hr style={styles.divider} />
 
@@ -168,13 +197,19 @@ const ProductDetails = () => {
       {/* --- Related Products SLIDER --- */}
       {filteredRelated && filteredRelated.length > 0 && (
         <div style={styles.relatedSection}>
-          <h2 style={styles.relatedTitle}>You May Also Like</h2>
+          <h2
+            style={{
+              ...styles.relatedTitle,
+              fontSize: isMobile ? "1.5rem" : "2rem",
+            }}
+          >
+            You May Also Like
+          </h2>
           <Swiper
             modules={[Navigation, Pagination, Autoplay]}
-            spaceBetween={20}
+            spaceBetween={isMobile ? 15 : 20}
             slidesPerView={1}
-            navigation
-            loop={true} // Add this
+            navigation={!isMobile} // Hide arrows on mobile for better touch experience
             pagination={{ clickable: true }}
             autoplay={{ delay: 4000, disableOnInteraction: false }}
             breakpoints={{
@@ -185,7 +220,6 @@ const ProductDetails = () => {
           >
             {filteredRelated.map((item) => (
               <SwiperSlide key={item.id}>
-                {/* Replace the content inside SwiperSlide with this */}
                 <div style={styles.miniCard} className="product-hover-card">
                   <Link
                     to={`/product/${item.id}`}
@@ -203,7 +237,7 @@ const ProductDetails = () => {
                       />
                     </div>
                     <div style={styles.miniInfo}>
-                      <h4 style={styles.miniTitle}>{item.title}</h4>
+                      <h4 style={styles.miniTitle}>{sanitize(item.title)}</h4>
                       <p style={styles.miniPrice}>${item.price}</p>
                     </div>
                   </Link>
@@ -224,15 +258,13 @@ const ProductDetails = () => {
 };
 
 const styles = {
-  page: { padding: "40px", maxWidth: "1200px", margin: "0 auto" },
-  breadcrumb: { marginBottom: "30px", fontSize: "0.9rem", color: "#888" },
+  page: { maxWidth: "1200px", margin: "0 auto" },
+  breadcrumb: { marginBottom: "30px", color: "#888" },
   container: {
     display: "flex",
-    gap: "60px",
-    flexWrap: "wrap",
     marginBottom: "40px",
   },
-  imageSection: { flex: 1.2, minWidth: "350px", position: "relative" },
+  imageSection: { flex: 1.2, position: "relative" },
   image: {
     width: "100%",
     borderRadius: "20px",
@@ -249,7 +281,7 @@ const styles = {
     fontSize: "0.8rem",
     zIndex: 1,
   },
-  infoSection: { flex: 1, minWidth: "350px" },
+  infoSection: { flex: 1 },
   categoryTag: {
     color: "#007bff",
     fontWeight: "700",
@@ -257,7 +289,7 @@ const styles = {
     fontSize: "0.75rem",
     letterSpacing: "1px",
   },
-  title: { fontSize: "2.4rem", margin: "10px 0", fontWeight: "800" },
+  title: { margin: "10px 0", fontWeight: "800" },
   priceRow: {
     display: "flex",
     alignItems: "baseline",
@@ -306,39 +338,31 @@ const styles = {
     color: "#777",
     fontSize: "0.85rem",
   },
-
-  // Slider Styles
   relatedSection: {
-    marginTop: "100px",
-    paddingTop: "50px",
+    marginTop: "60px",
+    paddingTop: "40px",
     borderTop: "1px solid #f0f0f0",
-    paddingBottom: "80px",
+    paddingBottom: "60px",
   },
   relatedTitle: {
-    fontSize: "2rem",
     fontWeight: "800",
-    marginBottom: "40px",
+    marginBottom: "30px",
     textAlign: "center",
     letterSpacing: "-0.5px",
   },
-
-  // MODERN SWIPER STYLES
   swiperContainer: {
-    padding: "20px 10px 60px 10px", // Extra bottom padding for pagination
+    padding: "10px 5px 50px 5px",
   },
   miniCard: {
     padding: "20px",
     background: "#fff",
     borderRadius: "20px",
     border: "1px solid #f5f5f5",
-    textAlign: "left", // Modern stores often align left
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    cursor: "pointer",
+    textAlign: "left",
     display: "flex",
     flexDirection: "column",
     height: "100%",
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
-    // On hover logic (add this to your CSS file for the best effect)
   },
   miniImageWrapper: {
     width: "100%",
@@ -352,7 +376,6 @@ const styles = {
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    transition: "transform 0.5s ease",
   },
   miniInfo: {
     flexGrow: 1,
@@ -392,9 +415,17 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "8px",
-    transition: "background 0.2s ease",
   },
-  loader: { padding: "100px", textAlign: "center" },
+  errorContainer: { padding: "100px", textAlign: "center" },
+  backBtn: {
+    padding: "10px 20px",
+    marginTop: "20px",
+    backgroundColor: "#000",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+  },
 };
 
 export default ProductDetails;
