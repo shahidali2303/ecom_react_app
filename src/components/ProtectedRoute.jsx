@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import useStore from "../store/useStore";
 
 const ProtectedRoute = ({ children }) => {
@@ -9,7 +9,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  // If 'children' exists (passed via prop), render it.
+  // Otherwise, render 'Outlet' (for nested route structures).
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

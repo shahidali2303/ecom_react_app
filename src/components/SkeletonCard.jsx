@@ -1,4 +1,3 @@
-// src/components/SkeletonCard.jsx
 const SkeletonCard = () => {
   return (
     <div style={styles.card}>

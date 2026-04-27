@@ -7,11 +7,14 @@ const LIMIT = 12;
 
 const fetchProducts = async (page) => {
   const offset = (page - 1) * LIMIT;
-  const url = `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${LIMIT}`;
+  const url = `https://dummyjson.com/products?limit=${LIMIT}&skip=${offset}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("Network response was not ok");
-  return res.json();
+
+  const data = await res.json();
+  // Return the array specifically so 'products' in your component is an array
+  return data.products;
 };
 
 const Home = () => {
@@ -54,7 +57,6 @@ const Home = () => {
         </div>
       ) : (
         <div className="fade-in">
-          {/* Main Product Grid */}
           <ProductCard products={products} addToCart={addToCart} />
 
           {/* Pagination Controls */}

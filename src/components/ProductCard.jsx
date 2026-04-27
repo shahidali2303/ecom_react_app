@@ -20,9 +20,13 @@ const ProductCard = ({ products }) => {
           const isWishlisted = wishlist.some((item) => item.id === product.id);
           const cartItem = cart.find((item) => item.id === product.id);
           const quantity = cartItem ? cartItem.quantity : 0;
+          const rating = product.rating ? product.rating.toFixed(1) : "N/A";
 
-          // Mock original price for the "Sale" effect
-          const originalPrice = (product.price * 1.25).toFixed(2);
+          // NEW: Calculate real original price using discountPercentage
+          const originalPrice = (
+            product.price /
+            (1 - product.discountPercentage / 100)
+          ).toFixed(2);
 
           return (
             <div key={product.id} style={styles.card} className="modern-card">
@@ -35,7 +39,7 @@ const ProductCard = ({ products }) => {
                   style={{ display: "block", height: "100%" }}
                 >
                   <img
-                    src={cleanImageUrl(product.images?.[0])}
+                    src={cleanImageUrl(product.thumbnail)}
                     alt={product.title}
                     style={styles.image}
                     className="card-image"
@@ -59,6 +63,7 @@ const ProductCard = ({ products }) => {
                 </button>
 
                 {/* Quick Add Overlay */}
+
                 <div
                   className="quick-actions-overlay"
                   style={styles.overlayContainer}
@@ -80,9 +85,10 @@ const ProductCard = ({ products }) => {
               <div style={styles.content}>
                 <div style={styles.metaRow}>
                   <p style={styles.category}>
-                    {product.category?.name || "Uncategorized"}
+                    {product.category || "Uncategorized"}
                   </p>
-                  <div style={styles.rating}>⭐ 4.8</div>
+
+                  <div style={styles.rating}>⭐ {rating}</div>
                 </div>
 
                 <Link to={`/product/${product.id}`} style={styles.link}>

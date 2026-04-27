@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../store/useStore";
+import { useMutation } from "@tanstack/react-query"; // Add this
+import { supabase } from "../lib/supabase"; // Add this
+import { toast } from "react-hot-toast"; // Add this
 
 const Checkout = () => {
-  const { cart, clearCart } = useStore();
+  const { cart, clearCart, user } = useStore();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -14,6 +17,27 @@ const Checkout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // --- ORDER MUTATION ---
+  const orderMutation = useMutation({
+    mutationFn: async (orderData) => {
+      const { data, error } = await supabase
+        .from("orders")
+        .insert([orderData])
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Order Placed Successfully!");
+      clearCart();
+      navigate("/"); // Or redirect to a "My Orders" page
+    },
+    onError: (error) => {
+      toast.error(`Order failed: ${error.message}`);
+    },
+  });
+
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0,
@@ -23,9 +47,30 @@ const Checkout = () => {
 
   const handlePlaceOrder = (e) => {
     e.preventDefault();
-    alert("🎉 Order Successful! Your items are on the way.");
-    clearCart();
-    navigate("/");
+
+    // 1. Gather form data
+    const formData = new FormData(e.target);
+    const shippingDetails = {
+      firstName: formData.get("firstName"),
+      lastName: formData.get("lastName"),
+      address: formData.get("address"),
+      city: formData.get("city"),
+      state: formData.get("state"),
+      zip: formData.get("zip"),
+    };
+
+    // 2. Prepare order object
+    const orderData = {
+      user_id: user?.id || null, // Optional if guest checkout is allowed
+      email: formData.get("email"),
+      total_amount: total,
+      items: cart, // JSONB field saves the whole array
+      shipping_address: shippingDetails,
+      status: "paid",
+    };
+
+    // 3. Trigger Supabase Insert
+    orderMutation.mutate(orderData);
   };
 
   const sanitize = (text) => text?.replace(/<[^>]*>?/gm, "") || "";
@@ -60,13 +105,19 @@ const Checkout = () => {
         >
           <h2 style={styles.sectionTitle}>Contact Information</h2>
           <form id="checkout-form" onSubmit={handlePlaceOrder}>
+            {/* CONTACT INFORMATION */}
+
             <input
+              name="email" // CRITICAL: Matches column in Supabase
               type="email"
               placeholder="Email Address"
+              defaultValue={user?.email || ""}
               required
+              readOnly={!!user?.email} // If user is logged in, prevent editing email
               style={styles.inputFull}
             />
 
+            {/* SHIPPING ADDRESS */}
             <h2 style={styles.sectionTitle}>Shipping Address</h2>
             <div
               style={{
@@ -76,12 +127,14 @@ const Checkout = () => {
               }}
             >
               <input
+                name="firstName" // Matches shipping_address JSON key
                 type="text"
                 placeholder="First Name"
                 required
                 style={isMobile ? styles.inputFull : styles.inputHalf}
               />
               <input
+                name="lastName"
                 type="text"
                 placeholder="Last Name"
                 required
@@ -90,12 +143,14 @@ const Checkout = () => {
             </div>
 
             <input
+              name="address"
               type="text"
               placeholder="Address"
               required
               style={styles.inputFull}
             />
             <input
+              name="apartment"
               type="text"
               placeholder="Apartment, suite, etc. (optional)"
               style={styles.inputFull}
@@ -109,26 +164,29 @@ const Checkout = () => {
               }}
             >
               <input
+                name="city"
                 type="text"
                 placeholder="City"
                 required
                 style={isMobile ? styles.inputFull : styles.inputThird}
               />
-
               <input
+                name="state"
                 type="text"
                 placeholder="State"
                 required
-                style={styles.inputHalf}
+                style={isMobile ? styles.inputFull : styles.inputHalf}
               />
               <input
+                name="zip"
                 type="text"
                 placeholder="ZIP code"
                 required
-                style={styles.inputHalf}
+                style={isMobile ? styles.inputFull : styles.inputHalf}
               />
             </div>
 
+            {/* PAYMENT SECTION */}
             <h2 style={styles.sectionTitle}>Payment</h2>
             <div style={styles.paymentBox}>
               <div style={styles.paymentHeader}>
@@ -137,6 +195,7 @@ const Checkout = () => {
               </div>
               <div style={styles.paymentBody}>
                 <input
+                  name="cardNumber"
                   type="text"
                   placeholder="Card Number"
                   style={styles.inputFull}
@@ -149,11 +208,13 @@ const Checkout = () => {
                   }}
                 >
                   <input
+                    name="expDate"
                     type="text"
                     placeholder="Expiration (MM/YY)"
                     style={isMobile ? styles.inputFull : styles.inputHalf}
                   />
                   <input
+                    name="cvv"
                     type="text"
                     placeholder="CVV"
                     style={isMobile ? styles.inputFull : styles.inputHalf}
@@ -162,8 +223,19 @@ const Checkout = () => {
               </div>
             </div>
 
-            <button type="submit" style={styles.submitBtn}>
-              Complete Purchase — ${total.toFixed(2)}
+            {/* SUBMIT BUTTON */}
+            <button
+              type="submit"
+              style={{
+                ...styles.submitBtn,
+                opacity: orderMutation.isPending ? 0.7 : 1,
+                cursor: orderMutation.isPending ? "not-allowed" : "pointer",
+              }}
+              disabled={orderMutation.isPending}
+            >
+              {orderMutation.isPending
+                ? "Processing..."
+                : `Complete Purchase — $${total.toFixed(2)}`}
             </button>
           </form>
         </div>

@@ -1,58 +1,90 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import useStore from "../store/useStore";
 import { supabase } from "../lib/supabase";
 import { toast } from "react-hot-toast";
 
-const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const Register = () => {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+  });
 
-  const loginAction = useStore((state) => state.login);
   const navigate = useNavigate();
 
   // --- TANSTACK MUTATION ---
-  // This handles the server state: loading, success, and error logic
   const mutation = useMutation({
-    mutationFn: ({ email, password }) => loginAction(email, password),
-    onSuccess: (userData) => {
-      // toast is already in your loginAction, but we redirect here
-      navigate("/");
+    mutationFn: async ({ email, password, fullName }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: fullName,
+          },
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Account created! You can now sign in.", {
+        duration: 5000,
+        icon: "🎉",
+      });
+      navigate("/login");
     },
     onError: (error) => {
-      toast.error(error.message || "Invalid credentials");
+      toast.error(error.message || "Registration failed");
     },
   });
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutation.mutate({ email, password });
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    mutation.mutate(formData);
   };
 
   return (
     <div style={styles.container}>
       <form onSubmit={handleSubmit} style={styles.card}>
         <div style={styles.header}>
-          <h2 style={styles.title}>Welcome Back</h2>
+          <h2 style={styles.title}>Create Account</h2>
+          <p style={styles.subtitle}>Join the LuxeStore community today</p>
         </div>
 
-        {/* Dynamic Error Message from TanStack Query */}
         {mutation.isError && (
-          <div style={styles.errorBanner}>
-            {mutation.error.message.includes("Invalid login credentials")
-              ? "The email or password you entered is incorrect."
-              : mutation.error.message}
-          </div>
+          <div style={styles.errorBanner}>{mutation.error.message}</div>
         )}
+
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Full Name</label>
+          <input
+            name="fullName"
+            type="text"
+            placeholder="Shahid Ali"
+            onChange={handleChange}
+            style={styles.input}
+            required
+            disabled={mutation.isPending}
+          />
+        </div>
 
         <div style={styles.inputGroup}>
           <label style={styles.label}>Email Address</label>
           <input
+            name="email"
             type="email"
-            placeholder="name@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="shahid@example.com"
+            onChange={handleChange}
             style={styles.input}
             required
             disabled={mutation.isPending}
@@ -62,10 +94,10 @@ const Login = () => {
         <div style={styles.inputGroup}>
           <label style={styles.label}>Password</label>
           <input
+            name="password"
             type="password"
             placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handleChange}
             style={styles.input}
             required
             disabled={mutation.isPending}
@@ -81,13 +113,13 @@ const Login = () => {
           }}
           disabled={mutation.isPending}
         >
-          {mutation.isPending ? "Signing in..." : "Sign In"}
+          {mutation.isPending ? "Creating Account..." : "Create Account"}
         </button>
 
         <p style={styles.footerText}>
-          Don't have an account?{" "}
-          <Link to="/register" style={styles.link}>
-            Create one
+          Already part of LuxeStore?{" "}
+          <Link to="/login" style={styles.link}>
+            Sign In
           </Link>
         </p>
       </form>
@@ -100,42 +132,41 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    minHeight: "80vh",
+    minHeight: "90vh",
     background: "#fff",
   },
   card: {
     padding: "40px",
     background: "#fff",
     border: "1px solid #f0f0f0",
-    borderRadius: "16px",
+    borderRadius: "20px",
     width: "100%",
-    maxWidth: "400px",
+    maxWidth: "420px",
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+    gap: "18px",
+    boxShadow: "0 15px 35px rgba(0,0,0,0.05)",
   },
   header: { textAlign: "center", marginBottom: "10px" },
   title: { fontSize: "1.8rem", fontWeight: "800", color: "#1a1a1a", margin: 0 },
   subtitle: { fontSize: "0.9rem", color: "#666", marginTop: "5px" },
-  inputGroup: { display: "flex", flexDirection: "column", gap: "8px" },
+  inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: { fontSize: "0.85rem", fontWeight: "600", color: "#444" },
   input: {
     padding: "14px",
-    borderRadius: "10px",
+    borderRadius: "12px",
     border: "1px solid #e2e8f0",
     fontSize: "1rem",
     outline: "none",
-    transition: "all 0.2s ease",
   },
   errorBanner: {
     padding: "12px",
     background: "#fff5f5",
     color: "#e53e3e",
-    borderRadius: "8px",
+    borderRadius: "10px",
     fontSize: "0.85rem",
-    border: "1px solid #fed7d7",
     textAlign: "center",
+    border: "1px solid #fed7d7",
   },
   btn: {
     padding: "16px",
@@ -145,11 +176,10 @@ const styles = {
     borderRadius: "12px",
     fontWeight: "700",
     fontSize: "1rem",
-    marginTop: "10px",
-    transition: "transform 0.1s active",
+    marginTop: "15px",
   },
   footerText: { textAlign: "center", fontSize: "0.9rem", color: "#666" },
   link: { color: "#000", fontWeight: "700", textDecoration: "none" },
 };
 
-export default Login;
+export default Register;

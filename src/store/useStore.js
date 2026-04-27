@@ -1,84 +1,208 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-hot-toast";
+import { supabase } from "../lib/supabase";
 
 const useStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       // --- STATE ---
       cart: [],
       wishlist: [],
       user: null,
       isAuthenticated: false,
       currentPage: 1,
+      profile: null, // NEW: Store the custom profile data
+      isLoading: false, // NEW: track loading state for auth checks
 
       setCurrentPage: (page) => set({ currentPage: page }),
+
       // --- AUTH ACTIONS ---
-      login: (userData) => {
-        set({ user: userData, isAuthenticated: true });
-        // Personalize the welcome message
-        toast.success(`Welcome back, ${userData.name}!`, {
+
+      // Used by App.jsx to sync Supabase session changes
+      // Fetches the extra profile data (is_admin, etc.)
+      fetchProfile: async (userId) => {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
+
+          if (error) throw error;
+          set({ profile: data });
+          return data;
+        } catch (err) {
+          console.error("Profile fetch error:", err);
+          return null;
+        }
+      },
+
+      setUser: async (supabaseUser) => {
+        set({ isLoading: true });
+        if (supabaseUser) {
+          // When a user is detected, immediately fetch their profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", supabaseUser.id)
+            .single();
+
+          set({
+            user: supabaseUser,
+            profile: profile,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          set({
+            user: null,
+            profile: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      },
+
+      login: async (email, password) => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        // Fetch the profile immediately after login to check is_admin
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .single();
+
+        set({ user: data.user, profile: profile, isAuthenticated: true });
+
+        const displayName = profile?.full_name || data.user.email;
+        toast.success(`Welcome back, ${displayName}!`, {
           icon: "👋",
           style: { borderRadius: "10px", background: "#333", color: "#fff" },
         });
+
+        return data.user;
       },
 
-      logout: () => {
-        set({ user: null, isAuthenticated: false, cart: [] });
+      logout: async () => {
+        await supabase.auth.signOut();
+        set({ user: null, profile: null, isAuthenticated: false, cart: [] });
         toast("Logged out successfully", { icon: "🔒" });
       },
 
-      // --- CART ACTIONS ---
-      clearCart: () => {
+      // cart actions with database sync
+
+      clearCart: async () => {
+        const { isAuthenticated, user } = get();
+
+        // 1. Local Update
         set({ cart: [] });
         toast.success("Cart cleared");
+
+        // 2. Database Sync
+        if (isAuthenticated && user) {
+          await supabase.from("cart_items").delete().eq("user_id", user.id);
+        }
       },
 
-      addToCart: (product) =>
-        set((state) => {
-          const existingIndex = state.cart.findIndex(
-            (item) => item.id === product.id,
+      addToCart: async (product) => {
+        const { cart, isAuthenticated, user } = get();
+        const existingItem = cart.find((item) => item.id === product.id);
+
+        toast.success(`${product.title} added to cart!`, {
+          style: { borderRadius: "10px", background: "#333", color: "#fff" },
+          icon: "🛒",
+        });
+
+        // 1. Local Update Logic
+        if (existingItem) {
+          const newCart = cart.map((item) =>
+            item.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item,
           );
+          set({ cart: newCart });
+        } else {
+          set({ cart: [...cart, { ...product, quantity: 1 }] });
+        }
 
-          toast.success(`${product.title} added to cart!`, {
-            style: { borderRadius: "10px", background: "#333", color: "#fff" },
-            icon: "🛒",
-          });
-
-          if (existingIndex !== -1) {
-            const newCart = [...state.cart];
-            newCart[existingIndex].quantity += 1;
-            return { cart: newCart };
+        // 2. Database Sync Logic
+        if (isAuthenticated && user) {
+          if (existingItem) {
+            await supabase
+              .from("cart_items")
+              .update({ quantity: existingItem.quantity + 1 })
+              .eq("user_id", user.id)
+              .eq("product_id", product.id);
+          } else {
+            await supabase.from("cart_items").insert({
+              user_id: user.id,
+              product_id: product.id,
+              product_data: product, // Stores title, price, image as JSON
+              quantity: 1,
+            });
           }
-          return { cart: [...state.cart, { ...product, quantity: 1 }] };
-        }),
+        }
+      },
 
-      decreaseQuantity: (productId) =>
-        set((state) => {
-          const item = state.cart.find((i) => i.id === productId);
+      decreaseQuantity: async (productId) => {
+        const { cart, isAuthenticated, user } = get();
+        const item = cart.find((i) => i.id === productId);
+        if (!item) return;
 
-          // If quantity is about to be 0, show a removal toast
-          if (item?.quantity === 1) {
-            toast.error("Item removed from cart");
-          }
-
-          const newCart = state.cart
-            .map((item) =>
-              item.id === productId
-                ? { ...item, quantity: item.quantity - 1 }
-                : item,
-            )
-            .filter((item) => item.quantity > 0);
-          return { cart: newCart };
-        }),
-
-      removeFromCart: (productId) =>
-        set((state) => {
+        if (item.quantity === 1) {
           toast.error("Item removed from cart");
-          return {
-            cart: state.cart.filter((item) => item.id !== productId),
-          };
-        }),
+        }
+
+        // 1. Local Update
+        const newCart = cart
+          .map((i) =>
+            i.id === productId ? { ...i, quantity: i.quantity - 1 } : i,
+          )
+          .filter((i) => i.quantity > 0);
+
+        set({ cart: newCart });
+
+        // 2. Database Sync
+        if (isAuthenticated && user) {
+          if (item.quantity > 1) {
+            await supabase
+              .from("cart_items")
+              .update({ quantity: item.quantity - 1 })
+              .eq("user_id", user.id)
+              .eq("product_id", productId);
+          } else {
+            await supabase
+              .from("cart_items")
+              .delete()
+              .eq("user_id", user.id)
+              .eq("product_id", productId);
+          }
+        }
+      },
+
+      removeFromCart: async (productId) => {
+        const { cart, isAuthenticated, user } = get();
+
+        // 1. Local Update
+        set({ cart: cart.filter((item) => item.id !== productId) });
+        toast.error("Item removed from cart");
+
+        // 2. Database Sync
+        if (isAuthenticated && user) {
+          await supabase
+            .from("cart_items")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("product_id", productId);
+        }
+      },
 
       // --- WISHLIST ACTIONS ---
       toggleWishlist: (product) =>

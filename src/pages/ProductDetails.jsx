@@ -11,19 +11,22 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-// --- FETCH FUNCTIONS ---
+// --- UPDATED FETCH FUNCTIONS ---
 const fetchSingleProduct = async (id) => {
-  const res = await fetch(`https://api.escuelajs.co/api/v1/products/${id}`);
+  const res = await fetch(`https://dummyjson.com/products/${id}`);
   if (!res.ok) throw new Error("Product not found");
   return res.json();
 };
 
-const fetchRelatedProducts = async (categoryId) => {
+const fetchRelatedProducts = async (categoryName) => {
+  if (!categoryName) return [];
+  // DummyJSON uses category names in the URL for filtering
   const res = await fetch(
-    `https://api.escuelajs.co/api/v1/products/?categoryId=${categoryId}&offset=0&limit=10`,
+    `https://dummyjson.com/products/category/${categoryName}?limit=10`,
   );
   if (!res.ok) throw new Error("Could not fetch related products");
-  return res.json();
+  const data = await res.json();
+  return data.products; // DummyJSON returns { products: [] }
 };
 
 const ProductDetails = () => {
@@ -55,14 +58,13 @@ const ProductDetails = () => {
     queryKey: ["product", id],
     queryFn: () => fetchSingleProduct(id),
     enabled: !!id,
-    retry: 1,
   });
 
-  // 2. Fetch Related Products
+  // 2. Fetch Related Products (Pass the category string)
   const { data: relatedItems } = useQuery({
-    queryKey: ["related", product?.category?.id],
-    queryFn: () => fetchRelatedProducts(product?.category?.id),
-    enabled: !!product?.category?.id,
+    queryKey: ["related", product?.category], // product.category is now a string like 'smartphones'
+    queryFn: () => fetchRelatedProducts(product?.category),
+    enabled: !!product?.category,
   });
 
   if (isLoading) return <SkeletonProductDetails />;
@@ -112,7 +114,7 @@ const ProductDetails = () => {
         <Link to="/" style={{ textDecoration: "none", color: "#888" }}>
           Home
         </Link>{" "}
-        /<span>{sanitize(product.category?.name) || "Category"}</span> /{" "}
+        /<span>{sanitize(product.category) || "Category"}</span> /{" "}
         {sanitize(product.title)}
       </nav>
 
@@ -146,7 +148,7 @@ const ProductDetails = () => {
             minWidth: isMobile ? "100%" : "350px",
           }}
         >
-          <p style={styles.categoryTag}>{sanitize(product.category?.name)}</p>
+          <p style={styles.categoryTag}>{sanitize(product.category)}</p>
           <h1
             style={{
               ...styles.title,
@@ -227,7 +229,7 @@ const ProductDetails = () => {
                   >
                     <div style={styles.miniImageWrapper}>
                       <img
-                        src={cleanImageUrl(item.images?.[0])}
+                        src={cleanImageUrl(item.thumbnail)}
                         style={styles.miniImage}
                         className="zoom-image"
                         alt={item.title}

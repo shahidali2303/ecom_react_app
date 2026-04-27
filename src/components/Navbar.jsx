@@ -31,14 +31,18 @@ const Navbar = () => {
       return;
     }
 
+    // FIND THIS SECTION IN YOUR CODE:
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
+        // UPDATE THIS URL:
         const res = await fetch(
-          `https://api.escuelajs.co/api/v1/products/?title=${searchTerm}&offset=0&limit=5`,
+          `https://dummyjson.com/products/search?q=${searchTerm}&limit=5`,
         );
         const data = await res.json();
-        setSearchResults(data);
+
+        // DummyJSON returns { products: [] }, so we set data.products
+        setSearchResults(data.products || []);
       } catch (err) {
         console.error("Search failed", err);
       } finally {
@@ -107,7 +111,7 @@ const Navbar = () => {
                       className="search-hover"
                     >
                       <img
-                        src={product.images[0]?.replace(/[\[\]"]/g, "")}
+                        src={product.thumbnail?.replace(/[\[\]"]/g, "")}
                         alt=""
                         style={styles.resultImg}
                       />
@@ -146,12 +150,21 @@ const Navbar = () => {
           {!isMobile && (
             <div style={styles.desktopAuth}>
               {isAuthenticated ? (
-                <div style={styles.userSection}>
-                  <div style={styles.avatar}>{user?.name?.charAt(0)}</div>
-                  <button onClick={handleLogout} style={styles.logoutBtn}>
-                    Logout
-                  </button>
-                </div>
+                <Link to="/dashboard/details" style={styles.userLink}>
+                  <div style={styles.userSection}>
+                    <div style={styles.avatar}>
+                      {user?.user_metadata?.display_name?.charAt(0) ||
+                        user?.email?.charAt(0) ||
+                        "U"}
+                    </div>
+                    <div style={styles.userInfo}>
+                      <span style={styles.userName}>
+                        {user?.user_metadata?.display_name || "Account"}
+                      </span>
+                      <span style={styles.userSubtitle}>Manage Profile</span>
+                    </div>
+                  </div>
+                </Link>
               ) : (
                 <Link to="/login" style={styles.loginBtn}>
                   Sign In
@@ -201,7 +214,7 @@ const Navbar = () => {
                       className="search-hover"
                     >
                       <img
-                        src={product.images[0]?.replace(/[\[\]"]/g, "")}
+                        src={product.thumbnail?.replace(/[\[\]"]/g, "")}
                         alt=""
                         style={styles.resultImg}
                       />
@@ -237,22 +250,29 @@ const Navbar = () => {
           {/* 3. AUTH SECTION (The Missing Part) */}
           <div style={styles.mobileAuthContainer}>
             {isAuthenticated ? (
-              <>
+              <Link
+                to="/dashboard/details"
+                style={{ textDecoration: "none" }}
+                onClick={() => setIsMenuOpen(false)}
+              >
                 <div style={styles.mobileUserCard}>
                   <div style={styles.avatar}>
-                    {user?.name?.charAt(0) || "U"}
+                    {user?.user_metadata?.display_name?.charAt(0) ||
+                      user?.email?.charAt(0) ||
+                      "U"}
                   </div>
                   <div style={styles.mobileTextGroup}>
-                    <span style={styles.mobileWelcome}>Welcome back,</span>
+                    <span style={styles.mobileWelcome}>My Account</span>
                     <span style={styles.mobileUserName}>
-                      {user?.name || "User"}
+                      {user?.user_metadata?.display_name ||
+                        user?.email?.split("@")[0] ||
+                        "User"}
                     </span>
                   </div>
+                  {/* Arrow icon to indicate it's a link */}
+                  <span style={{ marginLeft: "auto", color: "#888" }}>→</span>
                 </div>
-                <button onClick={handleLogout} style={styles.mobileLogoutBtn}>
-                  Log Out of Account
-                </button>
-              </>
+              </Link>
             ) : (
               <Link
                 to="/login"
@@ -380,17 +400,29 @@ const styles = {
     justifyContent: "center",
   },
   desktopAuth: { display: "flex", alignItems: "center" },
-  userSection: { display: "flex", alignItems: "center", gap: "10px" },
+  userSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "6px 12px",
+    borderRadius: "30px",
+    background: "#f8f9fa",
+    border: "1px solid #eee",
+    transition: "all 0.2s ease", // Add this
+    cursor: "pointer", // Add this
+  },
   avatar: {
-    width: "30px",
-    height: "30px",
-    background: "#eee",
+    width: "35px",
+    height: "35px",
     borderRadius: "50%",
+    backgroundColor: "#000",
+    color: "#fff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "0.8rem",
+    fontSize: "0.9rem",
     fontWeight: "bold",
+    textTransform: "uppercase",
   },
   logoutBtn: {
     background: "none",
@@ -401,12 +433,13 @@ const styles = {
     fontSize: "0.75rem",
   },
   loginBtn: {
-    background: "#000",
+    padding: "10px 24px",
+    backgroundColor: "#000",
     color: "#fff",
-    padding: "8px 18px",
-    borderRadius: "20px",
+    borderRadius: "25px",
     textDecoration: "none",
-    fontSize: "0.85rem",
+    fontWeight: "600",
+    fontSize: "0.9rem",
   },
   menuToggle: {
     display: "block",
@@ -533,6 +566,35 @@ const styles = {
     justifyContent: "center",
     fontSize: "1rem",
     fontWeight: "bold",
+  },
+  userLink: {
+    textDecoration: "none",
+    color: "inherit",
+    transition: "opacity 0.2s",
+  },
+  userSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "6px 12px",
+    borderRadius: "30px",
+    background: "#f8f9fa", // Soft background to make it look like a button
+    border: "1px solid #eee",
+  },
+  userInfo: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  userName: {
+    fontSize: "0.85rem",
+    fontWeight: "700",
+    color: "#111",
+    lineHeight: "1.2",
+  },
+  userSubtitle: {
+    fontSize: "0.7rem",
+    color: "#888",
   },
 };
 
