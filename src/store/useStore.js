@@ -41,16 +41,36 @@ const useStore = create(
       setUser: async (supabaseUser) => {
         set({ isLoading: true });
         if (supabaseUser) {
-          // When a user is detected, immediately fetch their profile
+          // Fetch Profile
           const { data: profile } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", supabaseUser.id)
             .single();
 
+          // Fetch Cart
+          const { data: dbCart } = await supabase
+            .from("cart_items")
+            .select("product_data, quantity")
+            .eq("user_id", supabaseUser.id);
+
+          // NEW: Fetch Wishlist
+          const { data: dbWishlist } = await supabase
+            .from("wishlist_items")
+            .select("product_data")
+            .eq("user_id", supabaseUser.id);
+
           set({
             user: supabaseUser,
             profile: profile,
+            // Format and sync Cart
+            cart:
+              dbCart?.map((i) => ({
+                ...i.product_data,
+                quantity: i.quantity,
+              })) || [],
+            // Format and sync Wishlist
+            wishlist: dbWishlist?.map((i) => i.product_data) || [],
             isAuthenticated: true,
             isLoading: false,
           });
@@ -60,6 +80,8 @@ const useStore = create(
             profile: null,
             isAuthenticated: false,
             isLoading: false,
+            cart: [],
+            wishlist: [],
           });
         }
       },
