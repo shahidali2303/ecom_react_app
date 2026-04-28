@@ -205,23 +205,62 @@ const useStore = create(
       },
 
       // --- WISHLIST ACTIONS ---
-      toggleWishlist: (product) =>
-        set((state) => {
-          const isExist = state.wishlist.find((item) => item.id === product.id);
+      // toggleWishlist: (product) =>
+      //   set((state) => {
+      //     const isExist = state.wishlist.find((item) => item.id === product.id);
 
-          if (isExist) {
-            toast("Removed from wishlist", { icon: "💔" });
-            return {
-              wishlist: state.wishlist.filter((item) => item.id !== product.id),
-            };
+      //     if (isExist) {
+      //       toast("Removed from wishlist", { icon: "💔" });
+      //       return {
+      //         wishlist: state.wishlist.filter((item) => item.id !== product.id),
+      //       };
+      //     }
+
+      //     toast.success("Added to wishlist!", {
+      //       icon: "❤️",
+      //       style: { borderRadius: "10px", background: "#333", color: "#fff" },
+      //     });
+      //     return { wishlist: [...state.wishlist, product] };
+      //   }),
+      toggleWishlist: async (product) => {
+        const { wishlist, isAuthenticated, user } = get();
+        const isExist = wishlist.find((item) => item.id === product.id);
+
+        if (isExist) {
+          // --- REMOVE LOGIC ---
+          // 1. Local Update
+          set({
+            wishlist: wishlist.filter((item) => item.id !== product.id),
+          });
+          toast("Removed from wishlist", { icon: "💔" });
+
+          // 2. Database Sync
+          if (isAuthenticated && user) {
+            await supabase
+              .from("wishlist_items")
+              .delete()
+              .eq("user_id", user.id)
+              .eq("product_id", product.id);
           }
-
+        } else {
+          // --- ADD LOGIC ---
+          // 1. Local Update
+          set({ wishlist: [...wishlist, product] });
           toast.success("Added to wishlist!", {
             icon: "❤️",
             style: { borderRadius: "10px", background: "#333", color: "#fff" },
           });
-          return { wishlist: [...state.wishlist, product] };
-        }),
+
+          // 2. Database Sync
+          if (isAuthenticated && user) {
+            await supabase.from("wishlist_items").insert({
+              user_id: user.id,
+              product_id: product.id,
+              product_data: product, // This saves the object into your JSONB column
+            });
+          }
+        }
+      },
 
       clearWishlist: () => set({ wishlist: [] }),
     }),
