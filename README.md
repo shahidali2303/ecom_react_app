@@ -1,16 +1,40 @@
-# React + Vite
+# LuxeStore | Full-Stack E-Commerce & Admin Suite 💎
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LuxeStore is a high-performance, industry-standard e-commerce ecosystem. It features a premium customer-facing storefront and a secure, responsive Admin Dashboard for real-time inventory and order management.
 
-Currently, two official plugins are available:
+**🔗 [Live Demo]((https://ecom-react-app-steel.vercel.app/))** | **📁 [Backend: Supabase]((https://eklwbhurycfwllreblvo.supabase.co))**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Key Features
 
-## React Compiler
+### 🛒 Customer Storefront
+- **Dynamic Catalog:** Real-time product browsing powered by DummyJSON & Supabase.
+- **Advanced State Management:** Persistent shopping cart and wishlist using **Zustand**.
+- **Secure Checkout:** Full integration with Supabase for order processing.
+- **Optimized UX:** Smooth navigation and interactive feedback via `react-hot-toast`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🛡️ Admin Dashboard (The "Command Center")
+- **RBAC Security:** Role-Based Access Control ensuring only authorized admins can manage data.
+- **Order Management:** Real-time tracking of customer orders with status update logic (Paid → Shipped → Delivered).
+- **Inventory Control:** Paginated product management with low-stock visual alerts.
+- **Responsive Layout:** Fully optimized for Mobile, Tablet, and Desktop management.
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend:** React 18, Vite, React Router 6.
+- **Backend-as-a-Service:** Supabase (PostgreSQL, Auth, RLS).
+- **State Management:** Zustand (with Persistence).
+- **Data Fetching:** TanStack Query (React Query) for caching and synchronization.
+- **Styling:** CSS-in-JS / Responsive Modular Design.
+- **Deployment:** Vercel.
+
+## 🏗️ Technical Highlights
+
+- **Supabase RLS Policies:** Implemented Row Level Security to ensure users can only see their own orders while Admins can oversee the entire database.
+- **Performance:** Leveraged `range-query` pagination to maintain sub-second load times for large datasets.
+- **Scalability:** Architected using a modular component pattern, making it easy to add new features or switch data sources.
+
+## ⚙️ Installation & Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/yourusername/luxestore.git](https://github.com/yourusername/luxestore.git)
