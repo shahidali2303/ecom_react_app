@@ -21,6 +21,7 @@ const Wishlist = () => {
       <h1 style={{ marginBottom: "30px" }}>My Wishlist ({wishlist.length})</h1>
 
       <ProductCard products={wishlist} addToCart={addToCart} />
+      {/* fix  */}
     </div>
   );
 };

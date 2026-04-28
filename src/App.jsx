@@ -28,6 +28,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 
 function App() {
   const setUser = useStore((state) => state.setUser);
+  // okay
 
   useEffect(() => {
     // 1. Check for an existing session when the app loads
